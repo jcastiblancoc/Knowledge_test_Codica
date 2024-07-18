@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to the Currency Converter Codica</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <svg width="100%" height="100%" viewBox="0 0 100 4" xmlns="http://www.w3.org/2000/svg">
+    </svg>
+    <h1>Welcome to the Currency Converter Codica</h1>
+    <div class="flex-container">
+        <div class="container">
+            <form id="currencyForm1" action="/list_all_currencies" method="GET">
+                <div class="input-group">
+                    <h2>List All Currencies</h2>
+                </div>
+                <button type="submit">List All</button>
+            </form>
+            <div id="currenciesTable"></div>
+            <button type="reset" id="resetButton1" style="display: none;">Reset</button>
+        </div>
+    </div>
+    <div class="flex-container">
+        <div class="container">
+            <form id="currencyForm2" action="/get_exchange_rate" method="GET">
+                <div class="input-group">
+                    <h2>Exchange Rate</h2>
+                </div>
+                <label for="target_currency">The base currency is USD. If you need a different base currency, enter it below; otherwise, leave the field blank.</label>
+                    <input type="text" id="target_currency" name="target_currency" placeholder="e.g., USD, EUR, GBP">
+                <button type="submit">Submit</button>
+            </form>
+            <div id="exchanges"></div>
+            <button type="reset" id="resetButton2" style="display: none;">Reset</button>
+        </div>
+    </div>
+    <div class="flex-container">
+        <div class="container">
+            <form id="currencyForm3" action="/custom_exchange_rate" method="GET">
+                <div class="input-group">
+                    <h2>Exchange Rate</h2>
+                </div>
+                <label for="custom_currency">The base currency is USD. If you need a different base currency, enter it below; otherwise, leave the field blank.</label>
+                    <input type="text" id="custom_currency" name="custom_currency" placeholder="e.g., USD, EUR, GBP">
+                    <label for="target_custom_currency">Enter the target currency code, if more than one separate it by coma</label>
+                    <input type="text" id="target_custom_currency" name="target_custom_currency" placeholder="e.g., USD, EUR, GBP" required>
+                <button type="submit">Submit</button>
+            </form>
+            <div id="custom_exchanges"></div>
+            <button type="reset" id="resetButton3" style="display: none;">Reset</button>
+        </div>
+    </div>
+    <div class="flex-container">
+        <div class="container">
+            <form id="currencyForm4" action="/exchange_value" method="GET">
+                <div class="input-group">
+                    <h2>Exchange value</h2>
+                </div>
+                    <label for="amount">Enter the amount to exchange.</label>
+                    <input type="number" id="amount" name="amount" required>
+                    <label for="custom_currency_exchange">The base currency is USD. If you need a different base currency, enter it below; otherwise, leave the field blank.</label>
+                    <input type="text" id="custom_currency_exchange" name="custom_currency_exchange" placeholder="e.g., USD, EUR, GBP">
+                    <label for="target_custom_currency_exchange">Enter the target currency code</label>
+                    <input type="text" id="target_custom_currency_exchange" name="target_custom_currency_exchange" placeholder="e.g., USD" maxlength="3" required>
+                <button type="submit">Submit</button>
+            </form>
+            <div id="exchanges_value"></div>
+            <button type="reset" id="resetButton4" style="display: none;">Reset</button>
+        </div>
+    </div>
+    <div class="flex-container">
+        <div class="container">
+            <form id="currencyForm5" action="/historical_log" method="GET">
+                <div class="input-group">
+                    <h2>Historical Log</h2>
+                </div>
+                <button type="submit">Search</button>
+            </form>
+            <div id="logs"></div>
+            <button type="reset" id="resetButton5" style="display: none;">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const currencyForm = document.getElementById('currencyForm1');
+            const currenciesTable = document.getElementById('currenciesTable');
+
+            currencyForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                fetch('/list_all_currencies')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        let tableHTML = '<h2>Currencies Information</h2>';
+                        tableHTML += '<table>';
+                        tableHTML += '<tr><th>Currency</th><th>Symbol</th><th>Name</th></tr>';
+
+                        for (const currency in data.data) {
+                            const { symbol, name } = data.data[currency];
+                            tableHTML += `<tr>
+                                <td>${currency}</td>
+                                <td>${symbol}</td>
+                                <td>${name}</td>
+                            </tr>`;
+                        }
+
+                        tableHTML += '</table>';
+                        currenciesTable.innerHTML = tableHTML;
+
+                        resetButton1.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching currencies:', error.message);
+                        currenciesTable.innerHTML = '<p>Error fetching currencies. Please try again later.</p>';
+                    });
+            });
+                resetButton1.addEventListener('click', function(event) {
+                    currencyForm1.reset();
+                    currenciesTable.innerHTML = '';
+                    resetButton1.style.display = 'none';
+                });
+        });
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currencyForm2').addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const targetCurrencyInput = document.getElementById('target_currency');
+                let baseCurrency = targetCurrencyInput.value.trim().toUpperCase();
+
+                if (!baseCurrency) {
+                    baseCurrency = 'USD';
+                }
+
+                fetch(`/get_exchange_rate?base_currency=${(baseCurrency)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const exchangesDiv = document.getElementById('exchanges');
+                        if (!exchangesDiv) {
+                            console.error('Element with id "exchanges" not found.');
+                            return;
+                        }
+                        let exchangeHTML = '<h2>Exchange Rate Information</h2>';
+                        exchangeHTML += '<table>';
+                        exchangeHTML += '<tr><th>Currency</th><th>Exchange Rate</th></tr>';
+
+                        for (const currency in data.exchangeRate.data) {
+                            const rate = data.exchangeRate.data[currency];
+                                exchangeHTML += `<tr>
+                                    <td>${currency}</td>
+                                    <td>${rate}</td>
+                                </tr>`;
+                            }
+
+                        exchangeHTML += '</table>';
+                        exchangesDiv.innerHTML = exchangeHTML;
+
+                        resetButton2.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching exchange rates:', error.message);
+                        const exchangesDiv = document.getElementById('exchanges');
+                        if (exchangesDiv) {
+                            exchangesDiv.innerHTML = '<p>Error fetching exchange rates. Please try again later.</p>';
+                        }
+                    });
+            });
+            resetButton2.addEventListener('click', function(event) {
+                currencyForm2.reset();
+                exchanges.innerHTML = '';
+                resetButton2.style.display = 'none';
+            });
+        });
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currencyForm3').addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const baseCurrencyInput = document.getElementById('custom_currency');
+                let baseCurrency = baseCurrencyInput ? baseCurrencyInput.value.trim().toUpperCase() : '';
+
+                const targetCurrencyInput = document.getElementById('target_custom_currency');
+                let targetCurrency = targetCurrencyInput ? targetCurrencyInput.value.trim().toUpperCase().replace(/\s+/g, '') : '';
+
+                if (!targetCurrency) {
+                    alert('Please enter at least one currency.');
+                    return;
+                }
+
+                fetch(`/custom_exchange_rate?base_currency=${baseCurrency}&target_currency=${targetCurrency}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Http error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const customExchange = document.getElementById('custom_exchanges');
+                        let exchangeHTML = '<h2>Custom Exchange Rate Information</h2>';
+                        exchangeHTML += '<table>';
+                        exchangeHTML += '<tr><th>Currency</th><th>Exchange Rate</th></tr>';
+
+                        const exchangeRates = data.exchangeRate.data;
+                        for (const currency in exchangeRates) {
+                            const rate = exchangeRates[currency];
+                            exchangeHTML += `<tr>
+                                <td>${currency}</td>
+                                <td>${rate}</td>
+                            </tr>`;
+                        }
+
+                        exchangeHTML += '</table>';
+                        customExchange.innerHTML = exchangeHTML;
+
+                        resetButton3.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching exchange rates:', error.message);
+                        const customExchange = document.getElementById('custom_exchanges');
+                        if (customExchange) {
+                            customExchange.innerHTML = '<p>Error fetching exchange rates. Please try again later.</p>';
+                        }
+                    });
+            });
+            resetButton3.addEventListener('click', function(event) {
+                currencyForm3.reset();
+                custom_exchanges.innerHTML = '';
+                resetButton3.style.display = 'none';
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currencyForm4').addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const amountInput = document.getElementById('amount');
+                const amount = amountInput.value.trim();
+
+                const baseCurrencyInput = document.getElementById('custom_currency_exchange');
+                const baseCurrency = baseCurrencyInput.value.trim().toUpperCase();
+
+                const targetCurrencyInput = document.getElementById('target_custom_currency_exchange');
+                const targetCurrency = targetCurrencyInput.value.trim().toUpperCase().replace(/\s+/g, '');
+
+                if (!targetCurrency) {
+                    alert('Please enter a target currency.');
+                    return;
+                }
+
+                if (!baseCurrency) {
+                    alert('Please enter a base currency.');
+                    return;
+                }
+
+                if (!amount || isNaN(parseFloat(amount))) {
+                    alert('Please enter a valid amount.');
+                    return;
+                }
+
+                fetch(`/exchange_value?amount=${amount}&base_currency=${baseCurrency}&target_currency=${targetCurrency}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const customExchange = document.getElementById('exchanges_value');
+                        let exchangeHTML = '<h2>Custom Exchange Rate Information</h2>';
+                        exchangeHTML += '<table>';
+                        exchangeHTML += '<tr><th>Base Currency</th><th>Target Currency</th><th>Amount</th><th>Exchange Rate</th><th>Total</th></tr>';
+
+                        if (data) {
+                            const { base_currency, target_currency, amount, exchange_rate, total } = data;
+
+                            exchangeHTML += `<tr>
+                                <td>${base_currency}</td>
+                                <td>${target_currency}</td>
+                                <td>${amount}</td>
+                                <td>${exchange_rate}</td>
+                                <td>${total}</td>
+                            </tr>`;
+                        } else {
+                            throw new Error('Invalid data structure received.');
+                        }
+
+                        exchangeHTML += '</table>';
+                        customExchange.innerHTML = exchangeHTML;
+
+                        resetButton4.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching exchange rates:', error.message);
+                        const customExchange = document.getElementById('exchanges_value');
+                        if (customExchange) {
+                            customExchange.innerHTML = '<p>Error fetching exchange rates. Please try again later.</p>';
+                        }
+                    });
+            });
+            resetButton4.addEventListener('click', function(event) {
+                currencyForm4.reset();
+                exchanges_value.innerHTML = '';
+                resetButton4.style.display = 'none';
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currencyForm = document.getElementById('currencyForm5');
+            const currenciesLogs = document.getElementById('logs');
+
+            currencyForm5.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                fetch('/historical_log')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        let tableHTML = '<h2>Historical Exchange Rate Log</h2>';
+                        tableHTML += '<table>';
+                        tableHTML += '<tr><th>Timestamp</th><th>Base Currency</th><th>Target Currency</th><th>Amount</th><th>Exchange Rate</th><th>Total</th></tr>';
+
+                        for (const timestamp in data) {
+                            const logEntry = data[timestamp];
+                            tableHTML += `<tr>
+                                <td>${logEntry.timestamp}</td>
+                                <td>${logEntry.base_currency}</td>
+                                <td>${logEntry.target_currency}</td>
+                                <td>${logEntry.amount}</td>
+                                <td>${logEntry.exchange_rate}</td>
+                                <td>${logEntry.total}</td>
+                            </tr>`;
+                        }
+
+                        tableHTML += '</table>';
+                        currenciesLogs.innerHTML = tableHTML;
+
+                        resetButton5.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching historical log:', error.message);
+                        currenciesLogs.innerHTML = '<p>Error fetching historical log. Please try again later.</p>';
+                    });
+            });
+            resetButton5.addEventListener('click', function(event) {
+                currencyForm5.reset();
+                currenciesLogs.innerHTML = '';
+                resetButton5.style.display = 'none';
+            });
+        });
+
+    </script>
+</body>
+</html>
